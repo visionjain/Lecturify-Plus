@@ -80,13 +80,18 @@ const LecturePage = () => {
       setIsGenerating(true);
       setButtonAnimation("animating");
 
-      // Helper: fetch + check for errors
+      // Helper: fetch + check for errors (handles HTML error pages too)
       const callGenerate = async (type: string) => {
         const res = await fetch("/api/users/generateResponse", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ transcript, type }),
         });
+        const contentType = res.headers.get("content-type") || "";
+        if (!contentType.includes("application/json")) {
+          const text = await res.text();
+          throw new Error(`Server error (${res.status}): ${text.slice(0, 200)}`);
+        }
         const json = await res.json();
         if (!res.ok) {
           throw new Error(json.error || `Failed to generate ${type}`);
