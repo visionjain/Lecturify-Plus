@@ -80,89 +80,76 @@ const LecturePage = () => {
       setIsGenerating(true);
       setButtonAnimation("animating");
 
-      // Step 1: Generate the lecture notes
+      // Helper: fetch + check for errors
+      const callGenerate = async (type: string) => {
+        const res = await fetch("/api/users/generateResponse", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ transcript, type }),
+        });
+        const json = await res.json();
+        if (!res.ok) {
+          throw new Error(json.error || `Failed to generate ${type}`);
+        }
+        return json.output;
+      };
+
+      // Step 1: Notes
       setButtonText("Generating Notes...");
-      const lectureNotesResponse = await fetch("/api/users/generateResponse", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ transcript, type: "lectureNotes" }),
-      });
-      const lectureNotesResult = await lectureNotesResponse.json();
-      setNotes(lectureNotesResult.output);
+      const notes = await callGenerate("lectureNotes");
+      setNotes(notes);
 
-      // Step 2: Generate the cheat sheet
+      // Step 2: Cheat Sheet
       setButtonText("Generating Cheat Sheet...");
-      const cheatSheetResponse = await fetch("/api/users/generateResponse", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ transcript, type: "cheatsheet" }),
-      });
-      const cheatSheetResult = await cheatSheetResponse.json();
-      setCheatSheet(cheatSheetResult.output);
+      const cheatSheet = await callGenerate("cheatsheet");
+      setCheatSheet(cheatSheet);
 
-      // Step 3: Generate the quiz
+      // Step 3: Quiz
       setButtonText("Generating Quiz...");
-      const quizResponse = await fetch("/api/users/generateResponse", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ transcript, type: "quiz" }),
-      });
-      const quizResult = await quizResponse.json();
-      setQwiz(quizResult.output);
+      const qwiz = await callGenerate("quiz");
+      setQwiz(qwiz);
 
-      // Step 4: Generate the flashcards
+      // Step 4: Scenario Questions
       setButtonText("Generating Scenario Q...");
-      const flashcardsResponse = await fetch("/api/users/generateResponse", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ transcript, type: "flashcards" }),
-      });
-      const flashcardsResult = await flashcardsResponse.json();
-      setFlashcards(flashcardsResult.output);
+      const flashcards = await callGenerate("flashcards");
+      setFlashcards(flashcards);
 
       // Step 5: Save all generated content
       setButtonText("Saving Content...");
-      const saveGenerationResponse = await fetch("/api/users/saveGeneration", {
+      const saveRes = await fetch("/api/users/saveGeneration", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          topic: lectureDetails?.lectureName, // Ensure the topic is being passed
-          notes: lectureNotesResult.output,
-          qwiz: quizResult.output,
-          flashcards: flashcardsResult.output,
-          cheatSheet: cheatSheetResult.output,
+          topic: lectureDetails?.lectureName,
+          notes,
+          qwiz,
+          flashcards,
+          cheatSheet,
         }),
       });
-      const saveGenerationResult = await saveGenerationResponse.json();
-      if (saveGenerationResult.success) {
+      const saveResult = await saveRes.json();
+      if (saveResult.success) {
         toast.success("Generation Saved", {
-          style: {
-            background: 'green',
-            color: 'white',
-          },
+          style: { background: "green", color: "white" },
         });
       } else {
         setButtonText("Error Saving Content");
       }
 
+      setButtonText("Generate");
       setIsGenerating(false);
-      setButtonAnimation(""); // Reset the animation when done
-    } catch (error) {
+      setButtonAnimation("");
+    } catch (error: any) {
       console.error("Error during content generation:", error);
+      toast.error(error?.message || "An error occurred during generation.", {
+        style: { background: "red", color: "white" },
+      });
       setButtonText("Error occurred");
       setIsGenerating(false);
+      setButtonAnimation("");
     }
   };
+
 
 
   const toggleAccessibility = () => {

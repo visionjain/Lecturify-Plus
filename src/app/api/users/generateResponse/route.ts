@@ -59,12 +59,11 @@ export async function POST(req: Request) {
     // Send the generated content as a server response object
     return NextResponse.json({ output: output });
   } catch (error: unknown) {
-    // Assert the error is of type Error, or narrow the type first
     if (error instanceof Error) {
-      console.error(error.message);  // Now you can access `message` and other properties safely
+      console.error("generateResponse error:", error.message);
       return NextResponse.json({ error: error.message }, { status: 500 });
     } else {
-      console.error("Unknown error", error);
+      console.error("generateResponse unknown error:", error);
       return NextResponse.json({ error: "An unknown error occurred." }, { status: 500 });
     }
   }
