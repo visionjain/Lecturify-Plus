@@ -16,7 +16,7 @@ import { FaFilePowerpoint } from "react-icons/fa6";
 import { toast } from 'sonner';
 import ReactMarkdown from "react-markdown";
 import { saveAs } from "file-saver";
-import { Document, Packer, Paragraph, TextRun } from "docx";
+import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType } from "docx";
 import { AiOutlineEye } from "react-icons/ai";
 import remarkGfm from "remark-gfm";
 
@@ -379,10 +379,62 @@ const LecturePage = () => {
       .trim();
   };
 
+  // Parse inline Markdown: splits on **bold** and returns TextRun[]
+  const parseInlineMarkdown = (text: string): TextRun[] => {
+    const parts = text.split(/(\*\*[^*]+\*\*)/g);
+    return parts.map((part) => {
+      if (part.startsWith("**") && part.endsWith("**")) {
+        return new TextRun({ text: part.slice(2, -2), bold: true });
+      }
+      return new TextRun({ text: part });
+    });
+  };
+
+  // Convert a Markdown string into an array of docx Paragraphs
+  const markdownToDocxParagraphs = (markdown: string): Paragraph[] => {
+    const lines = markdown.split("\n");
+    const paragraphs: Paragraph[] = [];
+
+    for (const rawLine of lines) {
+      const line = rawLine.trimEnd();
+
+      // Headings
+      if (line.startsWith("### ")) {
+        paragraphs.push(new Paragraph({ heading: HeadingLevel.HEADING_3, children: parseInlineMarkdown(line.slice(4)) }));
+      } else if (line.startsWith("## ")) {
+        paragraphs.push(new Paragraph({ heading: HeadingLevel.HEADING_2, children: parseInlineMarkdown(line.slice(3)) }));
+      } else if (line.startsWith("# ")) {
+        paragraphs.push(new Paragraph({ heading: HeadingLevel.HEADING_1, children: parseInlineMarkdown(line.slice(2)) }));
+      }
+      // Bullet list
+      else if (line.startsWith("- ") || line.startsWith("* ")) {
+        paragraphs.push(new Paragraph({ bullet: { level: 0 }, children: parseInlineMarkdown(line.slice(2)) }));
+      }
+      // Numbered list (e.g. "1. ")
+      else if (/^\d+\.\s/.test(line)) {
+        const text = line.replace(/^\d+\.\s/, "");
+        paragraphs.push(new Paragraph({ numbering: { reference: "default-numbering", level: 0 }, children: parseInlineMarkdown(text) }));
+      }
+      // Horizontal rule
+      else if (line.trim() === "---" || line.trim() === "***") {
+        paragraphs.push(new Paragraph({ children: [new TextRun({ text: "──────────────────────────────", color: "999999" })] }));
+      }
+      // Empty line → spacer
+      else if (line.trim() === "") {
+        paragraphs.push(new Paragraph({ children: [new TextRun("")] }));
+      }
+      // Regular paragraph
+      else {
+        paragraphs.push(new Paragraph({ children: parseInlineMarkdown(line) }));
+      }
+    }
+
+    return paragraphs;
+  };
+
   const handleSave = async (title: string, content: string) => {
     if (!content) return;
 
-    // Remove <br> tags before further processing
     let finalContent = content.replace(/<br\s*\/?>/g, "\n");
 
     // Convert to Braille if Accessibility Mode is ON
@@ -390,18 +442,35 @@ const LecturePage = () => {
       finalContent = convertToBraille(finalContent);
     }
 
-    // Ensure Markdown formatting is preserved
     const doc = new Document({
+      numbering: {
+        config: [
+          {
+            reference: "default-numbering",
+            levels: [
+              {
+                level: 0,
+                format: "decimal",
+                text: "%1.",
+                alignment: AlignmentType.LEFT,
+                style: { paragraph: { indent: { left: 720, hanging: 360 } } },
+              },
+            ],
+          },
+        ],
+      },
       sections: [
         {
           properties: {},
           children: [
             new Paragraph({
-              children: [new TextRun({ text: title, bold: true, size: 28 })],
+              heading: HeadingLevel.TITLE,
+              children: [new TextRun({ text: title, bold: true })],
             }),
-            ...finalContent.split("\n").map((line) =>
-              new Paragraph({ children: [new TextRun(line)] })
-            ),
+            new Paragraph({ children: [new TextRun("")] }),
+            ...(isAccessible
+              ? finalContent.split("\n").map((line) => new Paragraph({ children: [new TextRun(line)] }))
+              : markdownToDocxParagraphs(finalContent)),
           ],
         },
       ],

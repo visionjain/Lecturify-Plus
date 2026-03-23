@@ -44,13 +44,70 @@ export async function POST(req: Request) {
 
     // Define different prompts based on the content type
     if (type === "lectureNotes" || type === "notes") {
-      result = await model.generateContent(`Here given is a lecture. Generate lecture notes of the lecture that is over 1000 words long. Ensure that these notes captures the significant details of the text in over 1000 words. Output this 1000 word notes using basic html formatting and styling. it must be in markdown and structure into title, paragraph, lists and after every heading give a line space: ${prompt}`);
+      result = await model.generateContent(`You are a professional note-taker. Given the following lecture transcript, generate detailed structured lecture notes of over 1000 words.
+
+Rules:
+- Output ONLY valid Markdown. Do NOT use any HTML tags.
+- Structure: use # for the title, ## for major sections, ### for subsections.
+- Use bullet points and numbered lists where appropriate.
+- Add a blank line after every heading.
+- Be thorough and capture all key concepts.
+
+Lecture transcript:
+${prompt}`);
     } else if (type === "quiz") {
-      result = await model.generateContent(`Here given is a lecture. Generate 10 lecture MCQ . Ensure that these MCQ captures the significant details of the text. Output this MCQ using basic formatting. it must be in markdown and structure into Question, Options and Answer and after every heading give a line space. : ${prompt}`);
+      result = await model.generateContent(`You are a quiz generator. Given the following lecture transcript, generate 10 multiple choice questions (MCQs).
+
+Rules:
+- Output ONLY valid Markdown. Do NOT use any HTML tags.
+- Format each question exactly like this:
+
+**Question 1:** [Question text]
+
+A) Option A
+B) Option B
+C) Option C
+D) Option D
+
+**Answer:** [Correct option letter] — [Brief explanation]
+
+---
+
+- Add a blank line between each question block.
+
+Lecture transcript:
+${prompt}`);
     } else if (type === "flashcards") {
-      result = await model.generateContent(`Here given is a lecture. Generate 5 Scenrio Questions . Ensure that these Questions captures the significant details of the text. Output this Questions using basic formatting. it must be in markdown and structure into Question and after every heading give a line space.: ${prompt}`);
+      result = await model.generateContent(`You are an exam coach. Given the following lecture transcript, generate 5 scenario-based questions that test deep understanding.
+
+Rules:
+- Output ONLY valid Markdown. Do NOT use any HTML tags.
+- Format each scenario exactly like this:
+
+## Scenario [N]
+
+**Situation:** [Describe a realistic scenario related to the lecture]
+
+**Question:** [What should the student analyse or decide?]
+
+**Key concepts tested:** [Comma-separated list]
+
+---
+
+Lecture transcript:
+${prompt}`);
     } else if (type === "cheatsheet") {
-      result = await model.generateContent(`Generate a cheatsheet from the above given lecture. It should have atleast 30 bullet points Output this in markdown and after every heading give a line space.: ${prompt}`);
+      result = await model.generateContent(`You are a study guide creator. Given the following lecture transcript, generate a concise cheat sheet.
+
+Rules:
+- Output ONLY valid Markdown. Do NOT use any HTML tags.
+- Use ## for section headers.
+- Use bullet points (- ) for each fact/concept. At least 30 bullet points total.
+- Keep each bullet point short and information-dense.
+- Add a blank line after every section header.
+
+Lecture transcript:
+${prompt}`);
     } else {
       // Default to generating lecture notes if no valid type is provided
       result = await model.generateContent(`Generate lecture notes. Use markdown format: ${prompt}`);
