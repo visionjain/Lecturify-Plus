@@ -1,6 +1,10 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { NextResponse } from "next/server";
 
+// Extend Vercel serverless function timeout to 60s (Hobby plan max)
+// Gemini generation can take longer than the default 10s
+export const maxDuration = 60; // 60s max on Vercel Hobby plan
+
 // Ensure that `req` is correctly typed and handle potential missing API key
 export async function POST(req: Request) {
   try {
