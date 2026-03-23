@@ -24,7 +24,7 @@ export async function POST(req: Request) {
 
     // Initialize a generative model with configuration
     const model = genAI.getGenerativeModel({
-      model: "gemini-1.5-flash", // Use the appropriate model name
+      model: "gemini-2.5-flash-preview-03-25", // Latest Gemini 2.5 Flash model
       generationConfig: generationConfig, // Pass the generation configuration
       systemInstruction: "Professional and concise", // Set the system instruction
     });
@@ -39,7 +39,7 @@ export async function POST(req: Request) {
     let result;
 
     // Define different prompts based on the content type
-    if (type === "notes") {
+    if (type === "lectureNotes" || type === "notes") {
       result = await model.generateContent(`Here given is a lecture. Generate lecture notes of the lecture that is over 1000 words long. Ensure that these notes captures the significant details of the text in over 1000 words. Output this 1000 word notes using basic html formatting and styling. it must be in markdown and structure into title, paragraph, lists and after every heading give a line space: ${prompt}`);
     } else if (type === "quiz") {
       result = await model.generateContent(`Here given is a lecture. Generate 10 lecture MCQ . Ensure that these MCQ captures the significant details of the text. Output this MCQ using basic formatting. it must be in markdown and structure into Question, Options and Answer and after every heading give a line space. : ${prompt}`);

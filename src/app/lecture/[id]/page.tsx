@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { FaWandMagicSparkles } from "react-icons/fa6";
 import { FaMicrophoneAlt } from "react-icons/fa";
+import { FaFilePowerpoint } from "react-icons/fa6";
 import { toast } from 'sonner';
 import ReactMarkdown from "react-markdown";
 import { saveAs } from "file-saver";
@@ -57,6 +58,8 @@ const LecturePage = () => {
   const [speechQueue, setSpeechQueue] = useState<SpeechSynthesisUtterance[]>([]);
   const [currentUtteranceIndex, setCurrentUtteranceIndex] = useState(0);
   const [speakingTabs, setSpeakingTabs] = useState<{ [key: string]: boolean }>({});
+  const [isExtracting, setIsExtracting] = useState(false);
+  const pptInputRef = useRef<HTMLInputElement>(null);
 
 
 
@@ -165,6 +168,45 @@ const LecturePage = () => {
   const toggleAccessibility = () => {
     setIsAccessible(!isAccessible);
     // Implement actual accessibility features toggle logic here
+  };
+
+  const handlePPTUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Reset so the same file can be re-selected if needed
+    e.target.value = "";
+
+    setIsExtracting(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const res = await fetch("/api/users/parsePPT", {
+        method: "POST",
+        body: formData,
+      });
+
+      const result = await res.json();
+
+      if (!res.ok) {
+        toast.error(result.error || "Failed to extract PPT.", {
+          style: { background: "red", color: "white" },
+        });
+        return;
+      }
+
+      setTranscript(result.text);
+      toast.success("PPT extracted! Review the transcript and click Generate.", {
+        style: { background: "green", color: "white" },
+      });
+    } catch (err) {
+      toast.error("An error occurred while parsing the PPT.", {
+        style: { background: "red", color: "white" },
+      });
+    } finally {
+      setIsExtracting(false);
+    }
   };
 
 
@@ -501,6 +543,29 @@ const LecturePage = () => {
                     </label>
                   </div>
                 </div>
+              </div>
+
+              {/* PPT Upload Bar */}
+              <div className="ml-4 mr-4 mt-4 flex items-center gap-3">
+                <input
+                  ref={pptInputRef}
+                  type="file"
+                  accept=".pptx"
+                  className="hidden"
+                  onChange={handlePPTUpload}
+                />
+                <Button
+                  variant="outline"
+                  className="flex items-center gap-2 border border-[rgb(61,68,77)] dark:bg-[#0E0E0E] bg-[#E6E6E6] text-black dark:text-white hover:bg-gray-200 dark:hover:bg-gray-800 rounded-xl px-5 py-5 text-base font-medium transition-all"
+                  onClick={() => pptInputRef.current?.click()}
+                  disabled={isExtracting}
+                >
+                  <FaFilePowerpoint className="h-5 w-5 text-orange-500" />
+                  {isExtracting ? "Extracting..." : "Upload PPT"}
+                </Button>
+                <span className="text-sm text-gray-500 dark:text-gray-400">
+                  Upload a <span className="font-semibold">.pptx</span> file to auto-fill the transcript
+                </span>
               </div>
 
               <div
