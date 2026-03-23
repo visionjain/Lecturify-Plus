@@ -24,7 +24,7 @@ export async function POST(req: Request) {
 
     // Initialize a generative model with configuration
     const model = genAI.getGenerativeModel({
-      model: "gemini-2.5-flash-preview-03-25", // Latest Gemini 2.5 Flash model
+      model: "gemini-2.5-flash", // Gemini 2.5 Flash
       generationConfig: generationConfig, // Pass the generation configuration
       systemInstruction: "Professional and concise", // Set the system instruction
     });
