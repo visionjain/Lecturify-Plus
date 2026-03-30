@@ -37,6 +37,10 @@ export async function POST(req: Request) {
     const data = await req.json();
     const prompt = data.transcript;  // Extract the transcript sent by the client
     const type = data.type;          // Extract the content type (notes, quiz, etc.)
+    const parsedQuizCount = Number(data.quizCount);
+    const quizCount = Number.isFinite(parsedQuizCount)
+      ? Math.min(50, Math.max(1, Math.floor(parsedQuizCount)))
+      : 10;
 
 
     // Generate content based on the type
@@ -56,7 +60,7 @@ Rules:
 Lecture transcript:
 ${prompt}`);
     } else if (type === "quiz") {
-      result = await model.generateContent(`You are a quiz generator. Given the following lecture transcript, generate 10 multiple choice questions (MCQs).
+  result = await model.generateContent(`You are a quiz generator. Given the following lecture transcript, generate ${quizCount} multiple choice questions (MCQs).
 
 Rules:
 - Output ONLY valid Markdown. Do NOT use any HTML tags.

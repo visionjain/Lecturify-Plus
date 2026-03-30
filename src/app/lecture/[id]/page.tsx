@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { FaWandMagicSparkles } from "react-icons/fa6";
 import { FaMicrophoneAlt } from "react-icons/fa";
 import { FaFilePowerpoint } from "react-icons/fa6";
+import { FaFilePdf } from "react-icons/fa6";
 import { toast } from 'sonner';
 import ReactMarkdown from "react-markdown";
 import { saveAs } from "file-saver";
@@ -49,6 +50,7 @@ const LecturePage = () => {
   const [qwiz, setQwiz] = useState(null);
   const [flashcards, setFlashcards] = useState(null);
   const [cheatSheet, setCheatSheet] = useState(null);
+  const [quizCount, setQuizCount] = useState(10);
   const [buttonText, setButtonText] = useState("Generate");
   const [isGenerating, setIsGenerating] = useState(false);
   const [buttonAnimation, setButtonAnimation] = useState("");
@@ -60,6 +62,7 @@ const LecturePage = () => {
   const [speakingTabs, setSpeakingTabs] = useState<{ [key: string]: boolean }>({});
   const [isExtracting, setIsExtracting] = useState(false);
   const pptInputRef = useRef<HTMLInputElement>(null);
+  const pdfInputRef = useRef<HTMLInputElement>(null);
 
 
 
@@ -81,11 +84,11 @@ const LecturePage = () => {
       setButtonAnimation("animating");
 
       // Helper: fetch + check for errors (handles HTML error pages too)
-      const callGenerate = async (type: string) => {
+      const callGenerate = async (type: string, extraBody: Record<string, unknown> = {}) => {
         const res = await fetch("/api/users/generateResponse", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ transcript, type }),
+          body: JSON.stringify({ transcript, type, ...extraBody }),
         });
         const contentType = res.headers.get("content-type") || "";
         if (!contentType.includes("application/json")) {
@@ -111,7 +114,7 @@ const LecturePage = () => {
 
       // Step 3: Quiz
       setButtonText("Generating Quiz...");
-      const qwiz = await callGenerate("quiz");
+      const qwiz = await callGenerate("quiz", { quizCount });
       setQwiz(qwiz);
 
       // Step 4: Scenario Questions
@@ -162,6 +165,45 @@ const LecturePage = () => {
     // Implement actual accessibility features toggle logic here
   };
 
+  const handleDocumentUpload = async (file: File, endpoint: string, fileTypeLabel: string) => {
+    setIsExtracting(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const res = await fetch(endpoint, {
+        method: "POST",
+        body: formData,
+      });
+
+      const contentType = res.headers.get("content-type") || "";
+      if (!contentType.includes("application/json")) {
+        const text = await res.text();
+        throw new Error(`Server error (${res.status}): ${text.slice(0, 200)}`);
+      }
+
+      const result = await res.json();
+
+      if (!res.ok) {
+        toast.error(result.error || `Failed to extract ${fileTypeLabel}.`, {
+          style: { background: "red", color: "white" },
+        });
+        return;
+      }
+
+      setTranscript(result.text || "");
+      toast.success(`${fileTypeLabel} extracted! Review the transcript and click Generate.`, {
+        style: { background: "green", color: "white" },
+      });
+    } catch (err) {
+      toast.error(`An error occurred while parsing the ${fileTypeLabel}.`, {
+        style: { background: "red", color: "white" },
+      });
+    } finally {
+      setIsExtracting(false);
+    }
+  };
+
   const handlePPTUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -169,36 +211,17 @@ const LecturePage = () => {
     // Reset so the same file can be re-selected if needed
     e.target.value = "";
 
-    setIsExtracting(true);
-    try {
-      const formData = new FormData();
-      formData.append("file", file);
+    await handleDocumentUpload(file, "/api/users/parsePPT", "PPT");
+  };
 
-      const res = await fetch("/api/users/parsePPT", {
-        method: "POST",
-        body: formData,
-      });
+  const handlePDFUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
 
-      const result = await res.json();
+    // Reset so the same file can be re-selected if needed
+    e.target.value = "";
 
-      if (!res.ok) {
-        toast.error(result.error || "Failed to extract PPT.", {
-          style: { background: "red", color: "white" },
-        });
-        return;
-      }
-
-      setTranscript(result.text);
-      toast.success("PPT extracted! Review the transcript and click Generate.", {
-        style: { background: "green", color: "white" },
-      });
-    } catch (err) {
-      toast.error("An error occurred while parsing the PPT.", {
-        style: { background: "red", color: "white" },
-      });
-    } finally {
-      setIsExtracting(false);
-    }
+    await handleDocumentUpload(file, "/api/users/parsePDF", "PDF");
   };
 
 
@@ -615,6 +638,13 @@ const LecturePage = () => {
                   className="hidden"
                   onChange={handlePPTUpload}
                 />
+                <input
+                  ref={pdfInputRef}
+                  type="file"
+                  accept=".pdf"
+                  className="hidden"
+                  onChange={handlePDFUpload}
+                />
                 <Button
                   variant="outline"
                   className="flex items-center gap-2 border border-[rgb(61,68,77)] dark:bg-[#0E0E0E] bg-[#E6E6E6] text-black dark:text-white hover:bg-gray-200 dark:hover:bg-gray-800 rounded-xl px-5 py-5 text-base font-medium transition-all"
@@ -624,8 +654,17 @@ const LecturePage = () => {
                   <FaFilePowerpoint className="h-5 w-5 text-orange-500" />
                   {isExtracting ? "Extracting..." : "Upload PPT"}
                 </Button>
+                <Button
+                  variant="outline"
+                  className="flex items-center gap-2 border border-[rgb(61,68,77)] dark:bg-[#0E0E0E] bg-[#E6E6E6] text-black dark:text-white hover:bg-gray-200 dark:hover:bg-gray-800 rounded-xl px-5 py-5 text-base font-medium transition-all"
+                  onClick={() => pdfInputRef.current?.click()}
+                  disabled={isExtracting}
+                >
+                  <FaFilePdf className="h-5 w-5 text-red-500" />
+                  {isExtracting ? "Extracting..." : "Upload PDF"}
+                </Button>
                 <span className="text-sm text-gray-500 dark:text-gray-400">
-                  Upload a <span className="font-semibold">.pptx</span> file to auto-fill the transcript
+                  Upload a <span className="font-semibold">.pptx</span> or <span className="font-semibold">.pdf</span> file to auto-fill the transcript
                 </span>
               </div>
 
@@ -779,7 +818,7 @@ const LecturePage = () => {
                   <div>
                     <Tabs defaultValue="notes" className="w-full flex flex-col items-center">
                       {/* Centered TabsList with 100% width */}
-                      <TabsList className="w-[100%] text-black dark:text-white bg-[#FFFFFF] dark:bg-[#212628] mt-2 justify-center">
+                      <TabsList className="w-[100%] text-black dark:text-white bg-[#FFFFFF] dark:bg-[#212628] mt-2 justify-center gap-2">
                         <TabsTrigger
                           className="w-[25%] border border-transparent data-[state=active]:border-[rgb(61,68,77)] data-[state=active]:rounded-md"
                           value="notes"
@@ -792,6 +831,21 @@ const LecturePage = () => {
                         >
                           Qwiz
                         </TabsTrigger>
+                        <div className="flex items-center gap-2 px-3 py-1 rounded-md border border-[rgb(61,68,77)] bg-[#FFFFFF] dark:bg-[#212628]">
+                          <Label className="text-xs whitespace-nowrap">MCQs</Label>
+                          <select
+                            className="text-xs bg-transparent outline-none"
+                            value={quizCount}
+                            onChange={(e) => setQuizCount(Number(e.target.value))}
+                            disabled={isGenerating}
+                          >
+                            {[5, 10, 15, 20, 25].map((count) => (
+                              <option key={count} value={count}>
+                                {count}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
                         <TabsTrigger
                           className="w-[25%] border border-transparent data-[state=active]:border-[rgb(61,68,77)] data-[state=active]:rounded-md"
                           value="flashcards"
