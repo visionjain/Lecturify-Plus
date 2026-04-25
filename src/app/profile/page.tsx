@@ -1,6 +1,8 @@
 "use client"
+export const dynamic = "force-dynamic";
 import axios from "axios";
 import React, { useState, useEffect } from "react";
+import dynamicImport from "next/dynamic";
 import { toast } from 'sonner';
 import LogoutButton from "@/components/logoutbutton/page";
 import Loader from "@/components/loader/page";
@@ -14,7 +16,6 @@ import { Separator } from "@/components/ui/separator";
 import { CalendarIcon } from "@radix-ui/react-icons";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
-import { Calendar } from "@/components/ui/calendar";
 import { FaRegEye, FaRegEyeSlash } from 'react-icons/fa';
 import {
     Popover,
@@ -40,6 +41,11 @@ import {
     AlertDialogTitle,
     AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
+
+const Calendar = dynamicImport(
+    () => import("@/components/ui/calendar").then((mod) => mod.Calendar),
+    { ssr: false }
+);
 
 
 export default function ProfilePage() {
