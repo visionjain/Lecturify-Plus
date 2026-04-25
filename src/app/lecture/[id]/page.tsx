@@ -14,6 +14,7 @@ import { FaWandMagicSparkles } from "react-icons/fa6";
 import { FaMicrophoneAlt } from "react-icons/fa";
 import { FaFilePowerpoint } from "react-icons/fa6";
 import { FaFilePdf } from "react-icons/fa6";
+import JSZip from "jszip";
 import { toast } from 'sonner';
 import ReactMarkdown from "react-markdown";
 import { saveAs } from "file-saver";
@@ -40,7 +41,8 @@ const LecturePage = () => {
   const [loading, setLoading] = useState(true);
   const [userDetails, setUserDetails] = useState<any>(null);
   const [userRole, setUserRole] = useState("");
-  const { id } = useParams(); // Get the lecture ID from the URL
+  const params = useParams() as { id?: string | string[] } | null;
+  const id = Array.isArray(params?.id) ? params.id[0] : params?.id; // Get the lecture ID from the URL
   const [lectureDetails, setLectureDetails] = useState<any>(null);
   const [isRecording, setIsRecording] = useState(false);
   const [time, setTime] = useState(0); // Time in seconds
@@ -204,6 +206,46 @@ const LecturePage = () => {
     }
   };
 
+  const extractPptxTextFromFile = async (file: File) => {
+    const zip = await JSZip.loadAsync(file);
+    const slideFiles = Object.keys(zip.files)
+      .filter((name) => /^ppt\/slides\/slide\d+\.xml$/i.test(name))
+      .sort((left, right) => {
+        const leftNumber = Number(left.match(/slide(\d+)\.xml$/i)?.[1] || 0);
+        const rightNumber = Number(right.match(/slide(\d+)\.xml$/i)?.[1] || 0);
+        return leftNumber - rightNumber;
+      });
+
+    if (!slideFiles.length) {
+      throw new Error("No slides found in the uploaded PPTX.");
+    }
+
+    const slideTexts = await Promise.all(
+      slideFiles.map(async (slideFile, index) => {
+        const xml = await zip.file(slideFile)?.async("text");
+        if (!xml) return "";
+
+        const xmlDoc = new DOMParser().parseFromString(xml, "application/xml");
+        const textNodes = Array.from(xmlDoc.getElementsByTagNameNS("*", "t"));
+        const slideText = textNodes
+          .map((node) => node.textContent || "")
+          .join(" ")
+          .replace(/\s+/g, " ")
+          .trim();
+
+        return slideText ? `Slide ${index + 1}:\n${slideText}` : "";
+      })
+    );
+
+    const extractedText = slideTexts.filter(Boolean).join("\n\n");
+
+    if (!extractedText.trim()) {
+      throw new Error("No text content found in the uploaded PPT.");
+    }
+
+    return extractedText;
+  };
+
   const handlePPTUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -211,7 +253,25 @@ const LecturePage = () => {
     // Reset so the same file can be re-selected if needed
     e.target.value = "";
 
-    await handleDocumentUpload(file, "/api/users/parsePPT", "PPT");
+    setIsExtracting(true);
+    try {
+      if (!file.name.toLowerCase().endsWith(".pptx")) {
+        throw new Error("Only .pptx files are supported.");
+      }
+
+      const extractedText = await extractPptxTextFromFile(file);
+      setTranscript(extractedText);
+      toast.success("PPT extracted! Review the transcript and click Generate.", {
+        style: { background: "green", color: "white" },
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "An error occurred while parsing the PPT.";
+      toast.error(message, {
+        style: { background: "red", color: "white" },
+      });
+    } finally {
+      setIsExtracting(false);
+    }
   };
 
   const handlePDFUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
