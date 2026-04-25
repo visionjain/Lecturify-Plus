@@ -1,9 +1,12 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "main": ".open-next/server-functions/default/index.mjs",
+  "main": ".open-next/worker.js",
   "name": "lecturify",
   "compatibility_date": "2024-12-30",
   "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "build": {
+    "command": "npx @opennextjs/cloudflare build"
+  },
   "assets": {
     "directory": ".open-next/assets",
     "binding": "ASSETS"

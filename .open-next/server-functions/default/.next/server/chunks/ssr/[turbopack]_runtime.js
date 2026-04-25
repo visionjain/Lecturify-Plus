@@ -598,7 +598,13 @@ function applyModuleFactoryName(factory) {
 async function externalImport(id) {
     let raw;
     try {
-        raw = await import(id);
+        switch (id) {
+  case "next/dist/compiled/@vercel/og/index.node.js":
+    raw = await import("next/dist/compiled/@vercel/og/index.edge.js");
+    break;
+  default:
+    raw = await import(id);
+};
     } catch (err) {
         // TODO(alexkirsz) This can happen when a client-side module tries to load
         // an external module we don't provide a shim for (e.g. querystring, url).
@@ -729,7 +735,7 @@ function loadRuntimeChunkPath(sourcePath, chunkPath) {
     }
     try {
         const resolved = path.resolve(RUNTIME_ROOT, chunkPath);
-        const chunkModules = require(resolved);
+        const chunkModules = requireChunk(chunkPath);
         installCompressedModuleFactories(chunkModules, 0, moduleFactories);
         loadedChunks.add(chunkPath);
     } catch (cause) {
@@ -758,7 +764,7 @@ function loadChunkAsync(chunkData) {
             const resolved = path.resolve(RUNTIME_ROOT, chunkPath);
             // TODO: consider switching to `import()` to enable concurrent chunk loading and async file io
             // However this is incompatible with hot reloading (since `import` doesn't use the require cache)
-            const chunkModules = require(resolved);
+            const chunkModules = requireChunk(chunkPath);
             installCompressedModuleFactories(chunkModules, 0, moduleFactories);
             entry = loadedChunk;
         } catch (cause) {
@@ -901,3 +907,11 @@ module.exports = (sourcePath)=>({
 
 
 //# sourceMappingURL=%5Bturbopack%5D_runtime.js.map
+
+  function requireChunk(chunkPath) {
+    switch(chunkPath) {
+
+      default:
+        throw new Error(`Not found ${chunkPath}`);
+    }
+  }

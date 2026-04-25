@@ -1,2 +1,641 @@
 globalThis.disableIncrementalCache = false;globalThis.disableDynamoDBCache = false;globalThis.openNextDebug = false;globalThis.openNextVersion = "3.10.4";globalThis.nextVersion = "16.2.4";
-var C=Object.defineProperty;var B=Object.getOwnPropertyDescriptor;var A=Object.getOwnPropertyNames;var D=Object.prototype.hasOwnProperty;var M=(a,e)=>{for(var t in e)C(a,t,{get:e[t],enumerable:!0})},O=(a,e,t,n)=>{if(e&&typeof e=="object"||typeof e=="function")for(let i of A(e))!D.call(a,i)&&i!==t&&C(a,i,{get:()=>e[i],enumerable:!(n=B(e,i))||n.enumerable});return a};var F=a=>O(C({},"__esModule",{value:!0}),a);var U={};M(U,{SOFT_TAG_PREFIX:()=>m,default:()=>v});module.exports=F(U);function b(a){try{return"__openNextInternal"in a}catch{return!1}}function d(...a){globalThis.openNextDebug&&console.log(...a)}function y(...a){console.warn(...a)}var I=[{clientName:"S3Client",commandName:"GetObjectCommand",errorName:"NoSuchKey"}],L=a=>I.some(e=>e.clientName===a?.clientName&&e.commandName===a?.commandName&&(e.errorName===a?.error?.name||e.errorName===a?.error?.Code));function _(...a){if(a.some(e=>L(e)))return d(...a);if(a.some(e=>b(e))){let e=a.find(t=>b(t));return e.logLevel<j()?void 0:e.logLevel===0?console.log(...a.map(t=>b(t)?`${t.name}: ${t.message}`:t)):e.logLevel===1?y(...a.map(t=>b(t)?`${t.name}: ${t.message}`:t)):console.error(...a)}console.error(...a)}function j(){switch((process.env.OPEN_NEXT_ERROR_LOG_LEVEL??"1").toLowerCase()){case"debug":case"0":return 0;case"error":case"2":return 2;default:return 1}}function u(a,e,t){let n=0;if(a==="latest")n=1;else{/^[^\d]/.test(a)&&(a=a.substring(1)),/^[^\d]/.test(t)&&(t=t.substring(1));let[i,r=0,o=0]=a.split(".").map(Number),[s,c=0,p=0]=t.split(".").map(Number);if(Number.isNaN(i)||Number.isNaN(s))throw new Error("The major version is required.");i!==s?n=i-s:r!==c?n=r-c:o!==p&&(n=o-p)}switch(e){case"=":return n===0;case">=":return n>=0;case"<=":return n<=0;case">":return n>0;case"<":return n<0;default:throw new Error(`Unsupported operator: ${e}`)}}async function N(a,e,t){return!u(globalThis.nextVersion,">=","16.0.0")||globalThis.openNextConfig.dangerous?.disableTagCache?!1:globalThis.tagCache.mode==="nextMode"?e.length===0?!1:await globalThis.tagCache.isStale?.(e,t)??!1:await globalThis.tagCache.isStale?.(a,t)??!1}async function x(a,e,t){if(globalThis.openNextConfig.dangerous?.disableTagCache)return!1;if(!t.value)return!0;if("type"in t&&t.type==="page")return!1;let i=t.lastModified??Date.now();return globalThis.tagCache.mode==="nextMode"?e.length===0?!1:await globalThis.tagCache.hasBeenRevalidated(e,i):await globalThis.tagCache.getLastModified(a,i)===-1}function S(a){if(!a)return[];try{let e=a.meta?.headers?.["x-next-cache-tags"]?.split(",")??[];return delete a.meta?.headers?.["x-next-cache-tags"],e}catch{return[]}}function W(a){return typeof a=="string"?a:"path"in a?JSON.stringify({tag:a.tag,path:a.path}):a.tag}async function w(a){let e=globalThis.__openNextAls.getStore();if(d("Writing tags",a,e),!e||globalThis.openNextConfig.dangerous?.disableTagCache)return;let t=a.filter(n=>{let i=W(n),r=!e.writtenTags.has(i);return r&&e.writtenTags.add(i),r});t.length!==0&&await globalThis.tagCache.writeTags(t)}var G=new Set(["application/octet-stream","application/epub+zip","application/msword","application/pdf","application/rtf","application/vnd.amazon.ebook","application/vnd.ms-excel","application/vnd.ms-powerpoint","application/vnd.openxmlformats-officedocument.presentationml.presentation","application/vnd.openxmlformats-officedocument.spreadsheetml.sheet","application/vnd.openxmlformats-officedocument.wordprocessingml.document","font/otf","font/woff","font/woff2","image/bmp","image/gif","image/jpeg","image/png","image/tiff","image/vnd.microsoft.icon","image/webp","audio/3gpp","audio/aac","audio/basic","audio/flac","audio/mpeg","audio/ogg","audio/wavaudio/webm","audio/x-aiff","audio/x-midi","audio/x-wav","video/3gpp","video/mp2t","video/mpeg","video/ogg","video/quicktime","video/webm","video/x-msvideo","application/java-archive","application/vnd.apple.installer+xml","application/x-7z-compressed","application/x-apple-diskimage","application/x-bzip","application/x-bzip2","application/x-gzip","application/x-java-archive","application/x-rar-compressed","application/x-tar","application/x-zip","application/zip","application/x-protobuf"]);function E(a){if(!a)return!1;let e=a.split(";")[0];return G.has(e)}var m="_N_T_/";function z(a){return typeof a=="boolean"?a:typeof a=="object"?a.kindHint==="fetch"||a.fetchCache||a.kind==="FETCH":!1}var v=class{async get(e,t){if(globalThis.openNextConfig.dangerous?.disableIncrementalCache)return null;let n=typeof t=="object"?t.softTags:[],i=typeof t=="object"?t.tags:[];return z(t)?this.getFetchCache(e,n,i):this.getIncrementalCache(e)}async getFetchCache(e,t,n){d("get fetch cache",{key:e,softTags:t,tags:n});try{let i=await globalThis.incrementalCache.get(e,"fetch");if(i?.value===void 0)return null;let r=[...n??[],...t??[]],o=i.lastModified??Date.now();if(i.shouldBypassTagCache?!1:await x(e,r,i))return null;if((n??[]).length===0){let p=t?.find(l=>l.startsWith(m)&&!l.endsWith("layout")&&!l.endsWith("page"));if(p&&(i.shouldBypassTagCache?!1:await x(p.replace(m,""),[],i)))return null}return{lastModified:(i.shouldBypassTagCache?!1:await N(e,r,o))?1:o,value:i.value}}catch(i){return d("Failed to get fetch cache",i),null}}async getIncrementalCache(e){try{let t=await globalThis.incrementalCache.get(e,"cache");if(!t?.value)return null;let n=t.value,i=n.meta,r=S(n),o=t.lastModified??Date.now();if(t.shouldBypassTagCache?!1:await x(e,r,t))return null;let c=t.shouldBypassTagCache?!1:await N(e,r,o),p=globalThis.__openNextAls.getStore();if(p&&(p.lastModified=c?1:o,o=p.lastModified),n?.type==="route")return{lastModified:o,value:{kind:u(globalThis.nextVersion,">=","15.0.0")?"APP_ROUTE":"ROUTE",body:Buffer.from(n.body??Buffer.alloc(0),E(String(i?.headers?.["content-type"]))?"base64":"utf8"),status:i?.status,headers:i?.headers}};if(n?.type==="page"||n?.type==="app"){if(u(globalThis.nextVersion,">=","15.0.0")&&n?.type==="app"){let l=new Map;if(n.segmentData)for(let[f,g]of Object.entries(n.segmentData??{}))l.set(f,Buffer.from(g));return{lastModified:o,value:{kind:"APP_PAGE",html:n.html,rscData:Buffer.from(n.rsc),status:i?.status,headers:i?.headers,postponed:i?.postponed,segmentData:l}}}return{lastModified:o,value:{kind:u(globalThis.nextVersion,">=","15.0.0")?"PAGES":"PAGE",html:n.html,pageData:n.type==="page"?n.json:n.rsc,status:i?.status,headers:i?.headers}}}return n?.type==="redirect"?{lastModified:o,value:{kind:"REDIRECT",props:n.props}}:(y("Unknown cache type",n),null)}catch(t){return d("Failed to get body cache",t),null}}async set(e,t,n){if(globalThis.openNextConfig.dangerous?.disableIncrementalCache)return;let i=globalThis.__openNextAls.getStore()?.pendingPromiseRunner.withResolvers();try{if(t==null)await globalThis.incrementalCache.delete(e);else{let r=this.extractRevalidateForSet(n);switch(t.kind){case"ROUTE":case"APP_ROUTE":{let{body:o,status:s,headers:c}=t;await globalThis.incrementalCache.set(e,{type:"route",body:o.toString(E(String(c["content-type"]))?"base64":"utf8"),meta:{status:s,headers:c},revalidate:r},"cache");break}case"PAGE":case"PAGES":{let{html:o,pageData:s,status:c,headers:p}=t;typeof s=="string"?await globalThis.incrementalCache.set(e,{type:"app",html:o,rsc:s,meta:{status:c,headers:p},revalidate:r},"cache"):await globalThis.incrementalCache.set(e,{type:"page",html:o,json:s,revalidate:r},"cache");break}case"APP_PAGE":{let{html:o,rscData:s,headers:c,status:p,segmentData:l,postponed:f}=t,g={};if(l)for(let[h,T]of l.entries())g[h]=T.toString("utf8");await globalThis.incrementalCache.set(e,{type:"app",html:o,rsc:s.toString("utf8"),meta:{status:p,headers:c,postponed:f},revalidate:r,segmentData:l?g:void 0},"cache");break}case"FETCH":await globalThis.incrementalCache.set(e,t,"fetch");break;case"REDIRECT":await globalThis.incrementalCache.set(e,{type:"redirect",props:t.props,revalidate:r},"cache");break;case"IMAGE":break}}await this.updateTagsOnSet(e,t,n),d("Finished setting cache")}catch(r){_("Failed to set cache",r)}finally{i?.resolve()}}async revalidateTag(e,t){let n=globalThis.openNextConfig.dangerous;if(n?.disableTagCache||n?.disableIncrementalCache)return;let i=Array.isArray(e)?e:[e];if(i.length!==0)try{if(globalThis.tagCache.mode==="nextMode"){let r=await globalThis.tagCache.getPathsByTags?.(i)??[],o=Date.now(),s=i.map(c=>t?{tag:c,stale:o,expire:t.expire!==void 0?o+t.expire*1e3:void 0}:{tag:c,expire:o});await w(s),r.length>0&&await globalThis.cdnInvalidationHandler.invalidatePaths(r.map(c=>({initialPath:c,rawPath:c,resolvedRoutes:[{route:c,type:"app"}]})));return}for(let r of i){d("revalidateTag",r);let o=await globalThis.tagCache.getByTag(r);d("Items",o);let s=Date.now(),c=o.map(l=>{let f={path:l,tag:r};return t?{...f,stale:s,expire:t.expire!==void 0?s+t.expire*1e3:void 0}:{...f,expire:s}});if(r.startsWith(m))for(let l of o){let g=(await globalThis.tagCache.getByPath(l)).filter(h=>!h.startsWith(m));for(let h of g){let T=await globalThis.tagCache.getByTag(h);d({hardTag:h,_paths:T}),c.push(...T.map(R=>{let P={path:R,tag:h};return t?{...P,stale:s,expire:t.expire!==void 0?s+t.expire*1e3:void 0}:{...P,expire:s}}))}}await w(c);let p=Array.from(new Set(c.filter(l=>l.tag.startsWith(m)).map(l=>`/${l.path}`)));p.length>0&&await globalThis.cdnInvalidationHandler.invalidatePaths(p.map(l=>({initialPath:l,rawPath:l,resolvedRoutes:[{route:l,type:"app"}]})))}}catch(r){_("Failed to revalidate tag",r)}}async updateTagsOnSet(e,t,n){if(globalThis.openNextConfig.dangerous?.disableTagCache||globalThis.tagCache.mode==="nextMode"||!t)return;let i=t?.kind==="FETCH"?n?.tags??t?.data?.tags??[]:t?.kind==="PAGE"?t.headers?.["x-next-cache-tags"]?.split(",")??[]:[];d("derivedTags",i);let r=await globalThis.tagCache.getByPath(e),o=i.filter(s=>!r.includes(s));o.length>0&&await w(o.map(s=>({path:e,tag:s,revalidatedAt:1})))}extractRevalidateForSet(e){if(e!==void 0){if(typeof e=="number"||e===!1)return e;if("revalidate"in e)return e.revalidate;if("cacheControl"in e)return e.cacheControl?.revalidate}}};0&&(module.exports={SOFT_TAG_PREFIX});
+var __defProp = Object.defineProperty;
+var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
+var __getOwnPropNames = Object.getOwnPropertyNames;
+var __hasOwnProp = Object.prototype.hasOwnProperty;
+var __export = (target, all) => {
+  for (var name in all)
+    __defProp(target, name, { get: all[name], enumerable: true });
+};
+var __copyProps = (to, from, except, desc) => {
+  if (from && typeof from === "object" || typeof from === "function") {
+    for (let key of __getOwnPropNames(from))
+      if (!__hasOwnProp.call(to, key) && key !== except)
+        __defProp(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });
+  }
+  return to;
+};
+var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
+
+// node_modules/@opennextjs/aws/dist/adapters/cache.js
+var cache_exports = {};
+__export(cache_exports, {
+  SOFT_TAG_PREFIX: () => SOFT_TAG_PREFIX,
+  default: () => Cache
+});
+module.exports = __toCommonJS(cache_exports);
+
+// node_modules/@opennextjs/aws/dist/utils/error.js
+function isOpenNextError(e) {
+  try {
+    return "__openNextInternal" in e;
+  } catch {
+    return false;
+  }
+}
+
+// node_modules/@opennextjs/aws/dist/adapters/logger.js
+function debug(...args) {
+  if (globalThis.openNextDebug) {
+    console.log(...args);
+  }
+}
+function warn(...args) {
+  console.warn(...args);
+}
+var DOWNPLAYED_ERROR_LOGS = [
+  {
+    clientName: "S3Client",
+    commandName: "GetObjectCommand",
+    errorName: "NoSuchKey"
+  }
+];
+var isDownplayedErrorLog = (errorLog) => DOWNPLAYED_ERROR_LOGS.some((downplayedInput) => downplayedInput.clientName === errorLog?.clientName && downplayedInput.commandName === errorLog?.commandName && (downplayedInput.errorName === errorLog?.error?.name || downplayedInput.errorName === errorLog?.error?.Code));
+function error(...args) {
+  if (args.some((arg) => isDownplayedErrorLog(arg))) {
+    return debug(...args);
+  }
+  if (args.some((arg) => isOpenNextError(arg))) {
+    const error2 = args.find((arg) => isOpenNextError(arg));
+    if (error2.logLevel < getOpenNextErrorLogLevel()) {
+      return;
+    }
+    if (error2.logLevel === 0) {
+      return console.log(...args.map((arg) => isOpenNextError(arg) ? `${arg.name}: ${arg.message}` : arg));
+    }
+    if (error2.logLevel === 1) {
+      return warn(...args.map((arg) => isOpenNextError(arg) ? `${arg.name}: ${arg.message}` : arg));
+    }
+    return console.error(...args);
+  }
+  console.error(...args);
+}
+function getOpenNextErrorLogLevel() {
+  const strLevel = process.env.OPEN_NEXT_ERROR_LOG_LEVEL ?? "1";
+  switch (strLevel.toLowerCase()) {
+    case "debug":
+    case "0":
+      return 0;
+    case "error":
+    case "2":
+      return 2;
+    default:
+      return 1;
+  }
+}
+
+// node_modules/@opennextjs/aws/dist/utils/semver.js
+function compareSemver(v1, operator, v2) {
+  let versionDiff = 0;
+  if (v1 === "latest") {
+    versionDiff = 1;
+  } else {
+    if (/^[^\d]/.test(v1)) {
+      v1 = v1.substring(1);
+    }
+    if (/^[^\d]/.test(v2)) {
+      v2 = v2.substring(1);
+    }
+    const [major1, minor1 = 0, patch1 = 0] = v1.split(".").map(Number);
+    const [major2, minor2 = 0, patch2 = 0] = v2.split(".").map(Number);
+    if (Number.isNaN(major1) || Number.isNaN(major2)) {
+      throw new Error("The major version is required.");
+    }
+    if (major1 !== major2) {
+      versionDiff = major1 - major2;
+    } else if (minor1 !== minor2) {
+      versionDiff = minor1 - minor2;
+    } else if (patch1 !== patch2) {
+      versionDiff = patch1 - patch2;
+    }
+  }
+  switch (operator) {
+    case "=":
+      return versionDiff === 0;
+    case ">=":
+      return versionDiff >= 0;
+    case "<=":
+      return versionDiff <= 0;
+    case ">":
+      return versionDiff > 0;
+    case "<":
+      return versionDiff < 0;
+    default:
+      throw new Error(`Unsupported operator: ${operator}`);
+  }
+}
+
+// node_modules/@opennextjs/aws/dist/utils/cache.js
+async function isStale(key, tags, lastModified) {
+  if (!compareSemver(globalThis.nextVersion, ">=", "16.0.0")) {
+    return false;
+  }
+  if (globalThis.openNextConfig.dangerous?.disableTagCache) {
+    return false;
+  }
+  if (globalThis.tagCache.mode === "nextMode") {
+    return tags.length === 0 ? false : await globalThis.tagCache.isStale?.(tags, lastModified) ?? false;
+  }
+  return await globalThis.tagCache.isStale?.(key, lastModified) ?? false;
+}
+async function hasBeenRevalidated(key, tags, cacheEntry) {
+  if (globalThis.openNextConfig.dangerous?.disableTagCache) {
+    return false;
+  }
+  const value = cacheEntry.value;
+  if (!value) {
+    return true;
+  }
+  if ("type" in cacheEntry && cacheEntry.type === "page") {
+    return false;
+  }
+  const lastModified = cacheEntry.lastModified ?? Date.now();
+  if (globalThis.tagCache.mode === "nextMode") {
+    return tags.length === 0 ? false : await globalThis.tagCache.hasBeenRevalidated(tags, lastModified);
+  }
+  const _lastModified = await globalThis.tagCache.getLastModified(key, lastModified);
+  return _lastModified === -1;
+}
+function getTagsFromValue(value) {
+  if (!value) {
+    return [];
+  }
+  try {
+    const cacheTags = value.meta?.headers?.["x-next-cache-tags"]?.split(",") ?? [];
+    delete value.meta?.headers?.["x-next-cache-tags"];
+    return cacheTags;
+  } catch (e) {
+    return [];
+  }
+}
+function getTagKey(tag) {
+  if (typeof tag === "string") {
+    return tag;
+  }
+  if ("path" in tag) {
+    return JSON.stringify({
+      tag: tag.tag,
+      path: tag.path
+    });
+  }
+  return tag.tag;
+}
+async function writeTags(tags) {
+  const store = globalThis.__openNextAls.getStore();
+  debug("Writing tags", tags, store);
+  if (!store || globalThis.openNextConfig.dangerous?.disableTagCache) {
+    return;
+  }
+  const tagsToWrite = tags.filter((t) => {
+    const tagKey = getTagKey(t);
+    const shouldWrite = !store.writtenTags.has(tagKey);
+    if (shouldWrite) {
+      store.writtenTags.add(tagKey);
+    }
+    return shouldWrite;
+  });
+  if (tagsToWrite.length === 0) {
+    return;
+  }
+  await globalThis.tagCache.writeTags(tagsToWrite);
+}
+
+// node_modules/@opennextjs/aws/dist/utils/binary.js
+var commonBinaryMimeTypes = /* @__PURE__ */ new Set([
+  "application/octet-stream",
+  // Docs
+  "application/epub+zip",
+  "application/msword",
+  "application/pdf",
+  "application/rtf",
+  "application/vnd.amazon.ebook",
+  "application/vnd.ms-excel",
+  "application/vnd.ms-powerpoint",
+  "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  // Fonts
+  "font/otf",
+  "font/woff",
+  "font/woff2",
+  // Images
+  "image/bmp",
+  "image/gif",
+  "image/jpeg",
+  "image/png",
+  "image/tiff",
+  "image/vnd.microsoft.icon",
+  "image/webp",
+  // Audio
+  "audio/3gpp",
+  "audio/aac",
+  "audio/basic",
+  "audio/flac",
+  "audio/mpeg",
+  "audio/ogg",
+  "audio/wavaudio/webm",
+  "audio/x-aiff",
+  "audio/x-midi",
+  "audio/x-wav",
+  // Video
+  "video/3gpp",
+  "video/mp2t",
+  "video/mpeg",
+  "video/ogg",
+  "video/quicktime",
+  "video/webm",
+  "video/x-msvideo",
+  // Archives
+  "application/java-archive",
+  "application/vnd.apple.installer+xml",
+  "application/x-7z-compressed",
+  "application/x-apple-diskimage",
+  "application/x-bzip",
+  "application/x-bzip2",
+  "application/x-gzip",
+  "application/x-java-archive",
+  "application/x-rar-compressed",
+  "application/x-tar",
+  "application/x-zip",
+  "application/zip",
+  // Serialized data
+  "application/x-protobuf"
+]);
+function isBinaryContentType(contentType) {
+  if (!contentType)
+    return false;
+  const value = contentType.split(";")[0];
+  return commonBinaryMimeTypes.has(value);
+}
+
+// node_modules/@opennextjs/aws/dist/adapters/cache.js
+var SOFT_TAG_PREFIX = "_N_T_/";
+function isFetchCache(options) {
+  if (typeof options === "boolean") {
+    return options;
+  }
+  if (typeof options === "object") {
+    return options.kindHint === "fetch" || options.fetchCache || options.kind === "FETCH";
+  }
+  return false;
+}
+var Cache = class {
+  async get(key, options) {
+    if (globalThis.openNextConfig.dangerous?.disableIncrementalCache) {
+      return null;
+    }
+    const softTags = typeof options === "object" ? options.softTags : [];
+    const tags = typeof options === "object" ? options.tags : [];
+    return isFetchCache(options) ? this.getFetchCache(key, softTags, tags) : this.getIncrementalCache(key);
+  }
+  async getFetchCache(key, softTags, tags) {
+    debug("get fetch cache", { key, softTags, tags });
+    try {
+      const cachedEntry = await globalThis.incrementalCache.get(key, "fetch");
+      if (cachedEntry?.value === void 0)
+        return null;
+      const _tags = [...tags ?? [], ...softTags ?? []];
+      const _lastModified = cachedEntry.lastModified ?? Date.now();
+      const _hasBeenRevalidated = cachedEntry.shouldBypassTagCache ? false : await hasBeenRevalidated(key, _tags, cachedEntry);
+      if (_hasBeenRevalidated)
+        return null;
+      if ((tags ?? []).length === 0) {
+        const path = softTags?.find((tag) => tag.startsWith(SOFT_TAG_PREFIX) && !tag.endsWith("layout") && !tag.endsWith("page"));
+        if (path) {
+          const hasPathBeenUpdated = cachedEntry.shouldBypassTagCache ? false : await hasBeenRevalidated(path.replace(SOFT_TAG_PREFIX, ""), [], cachedEntry);
+          if (hasPathBeenUpdated) {
+            return null;
+          }
+        }
+      }
+      const _isStale = cachedEntry.shouldBypassTagCache ? false : await isStale(key, _tags, _lastModified);
+      return {
+        lastModified: _isStale ? 1 : _lastModified,
+        value: cachedEntry.value
+      };
+    } catch (e) {
+      debug("Failed to get fetch cache", e);
+      return null;
+    }
+  }
+  async getIncrementalCache(key) {
+    try {
+      const cachedEntry = await globalThis.incrementalCache.get(key, "cache");
+      if (!cachedEntry?.value) {
+        return null;
+      }
+      const cacheData = cachedEntry.value;
+      const meta = cacheData.meta;
+      const tags = getTagsFromValue(cacheData);
+      let _lastModified = cachedEntry.lastModified ?? Date.now();
+      const _hasBeenRevalidated = cachedEntry.shouldBypassTagCache ? false : await hasBeenRevalidated(key, tags, cachedEntry);
+      if (_hasBeenRevalidated)
+        return null;
+      const _isStale = cachedEntry.shouldBypassTagCache ? false : await isStale(key, tags, _lastModified);
+      const store = globalThis.__openNextAls.getStore();
+      if (store) {
+        store.lastModified = _isStale ? 1 : _lastModified;
+        _lastModified = store.lastModified;
+      }
+      if (cacheData?.type === "route") {
+        return {
+          lastModified: _lastModified,
+          value: {
+            kind: compareSemver(globalThis.nextVersion, ">=", "15.0.0") ? "APP_ROUTE" : "ROUTE",
+            body: Buffer.from(cacheData.body ?? Buffer.alloc(0), isBinaryContentType(String(meta?.headers?.["content-type"])) ? "base64" : "utf8"),
+            status: meta?.status,
+            headers: meta?.headers
+          }
+        };
+      }
+      if (cacheData?.type === "page" || cacheData?.type === "app") {
+        if (compareSemver(globalThis.nextVersion, ">=", "15.0.0") && cacheData?.type === "app") {
+          const segmentData = /* @__PURE__ */ new Map();
+          if (cacheData.segmentData) {
+            for (const [segmentPath, segmentContent] of Object.entries(cacheData.segmentData ?? {})) {
+              segmentData.set(segmentPath, Buffer.from(segmentContent));
+            }
+          }
+          return {
+            lastModified: _lastModified,
+            value: {
+              kind: "APP_PAGE",
+              html: cacheData.html,
+              rscData: Buffer.from(cacheData.rsc),
+              status: meta?.status,
+              headers: meta?.headers,
+              postponed: meta?.postponed,
+              segmentData
+            }
+          };
+        }
+        return {
+          lastModified: _lastModified,
+          value: {
+            kind: compareSemver(globalThis.nextVersion, ">=", "15.0.0") ? "PAGES" : "PAGE",
+            html: cacheData.html,
+            pageData: cacheData.type === "page" ? cacheData.json : cacheData.rsc,
+            status: meta?.status,
+            headers: meta?.headers
+          }
+        };
+      }
+      if (cacheData?.type === "redirect") {
+        return {
+          lastModified: _lastModified,
+          value: {
+            kind: "REDIRECT",
+            props: cacheData.props
+          }
+        };
+      }
+      warn("Unknown cache type", cacheData);
+      return null;
+    } catch (e) {
+      debug("Failed to get body cache", e);
+      return null;
+    }
+  }
+  async set(key, data, ctx) {
+    if (globalThis.openNextConfig.dangerous?.disableIncrementalCache) {
+      return;
+    }
+    const detachedPromise = globalThis.__openNextAls.getStore()?.pendingPromiseRunner.withResolvers();
+    try {
+      if (data === null || data === void 0) {
+        await globalThis.incrementalCache.delete(key);
+      } else {
+        const revalidate = this.extractRevalidateForSet(ctx);
+        switch (data.kind) {
+          case "ROUTE":
+          case "APP_ROUTE": {
+            const { body, status, headers } = data;
+            await globalThis.incrementalCache.set(key, {
+              type: "route",
+              body: body.toString(isBinaryContentType(String(headers["content-type"])) ? "base64" : "utf8"),
+              meta: {
+                status,
+                headers
+              },
+              revalidate
+            }, "cache");
+            break;
+          }
+          case "PAGE":
+          case "PAGES": {
+            const { html, pageData, status, headers } = data;
+            const isAppPath = typeof pageData === "string";
+            if (isAppPath) {
+              await globalThis.incrementalCache.set(key, {
+                type: "app",
+                html,
+                rsc: pageData,
+                meta: {
+                  status,
+                  headers
+                },
+                revalidate
+              }, "cache");
+            } else {
+              await globalThis.incrementalCache.set(key, {
+                type: "page",
+                html,
+                json: pageData,
+                revalidate
+              }, "cache");
+            }
+            break;
+          }
+          case "APP_PAGE": {
+            const { html, rscData, headers, status, segmentData, postponed } = data;
+            const segmentToWrite = {};
+            if (segmentData) {
+              for (const [segmentPath, segmentContent] of segmentData.entries()) {
+                segmentToWrite[segmentPath] = segmentContent.toString("utf8");
+              }
+            }
+            await globalThis.incrementalCache.set(key, {
+              type: "app",
+              html,
+              rsc: rscData.toString("utf8"),
+              meta: {
+                status,
+                headers,
+                postponed
+              },
+              revalidate,
+              segmentData: segmentData ? segmentToWrite : void 0
+            }, "cache");
+            break;
+          }
+          case "FETCH":
+            await globalThis.incrementalCache.set(key, data, "fetch");
+            break;
+          case "REDIRECT":
+            await globalThis.incrementalCache.set(key, {
+              type: "redirect",
+              props: data.props,
+              revalidate
+            }, "cache");
+            break;
+          case "IMAGE":
+            break;
+        }
+      }
+      await this.updateTagsOnSet(key, data, ctx);
+      debug("Finished setting cache");
+    } catch (e) {
+      error("Failed to set cache", e);
+    } finally {
+      detachedPromise?.resolve();
+    }
+  }
+  async revalidateTag(tags, durations) {
+    const config = globalThis.openNextConfig.dangerous;
+    if (config?.disableTagCache || config?.disableIncrementalCache) {
+      return;
+    }
+    const _tags = Array.isArray(tags) ? tags : [tags];
+    if (_tags.length === 0) {
+      return;
+    }
+    try {
+      if (globalThis.tagCache.mode === "nextMode") {
+        const paths = await globalThis.tagCache.getPathsByTags?.(_tags) ?? [];
+        const now = Date.now();
+        const tagsToWrite = _tags.map((tag) => {
+          if (durations) {
+            return {
+              tag,
+              stale: now,
+              expire: durations.expire !== void 0 ? now + durations.expire * 1e3 : void 0
+            };
+          }
+          return {
+            tag,
+            expire: now
+          };
+        });
+        await writeTags(tagsToWrite);
+        if (paths.length > 0) {
+          await globalThis.cdnInvalidationHandler.invalidatePaths(paths.map((path) => ({
+            initialPath: path,
+            rawPath: path,
+            resolvedRoutes: [
+              {
+                route: path,
+                // TODO: ideally here we should check if it's an app router page or route
+                type: "app"
+              }
+            ]
+          })));
+        }
+        return;
+      }
+      for (const tag of _tags) {
+        debug("revalidateTag", tag);
+        const paths = await globalThis.tagCache.getByTag(tag);
+        debug("Items", paths);
+        const now = Date.now();
+        const toInsert = paths.map((path) => {
+          const baseEntry = { path, tag };
+          if (durations) {
+            return {
+              ...baseEntry,
+              stale: now,
+              expire: durations.expire !== void 0 ? now + durations.expire * 1e3 : void 0
+            };
+          }
+          return {
+            ...baseEntry,
+            expire: now
+          };
+        });
+        if (tag.startsWith(SOFT_TAG_PREFIX)) {
+          for (const path of paths) {
+            const _tags2 = await globalThis.tagCache.getByPath(path);
+            const hardTags = _tags2.filter((t) => !t.startsWith(SOFT_TAG_PREFIX));
+            for (const hardTag of hardTags) {
+              const _paths = await globalThis.tagCache.getByTag(hardTag);
+              debug({ hardTag, _paths });
+              toInsert.push(..._paths.map((path2) => {
+                const baseEntry = { path: path2, tag: hardTag };
+                if (durations) {
+                  return {
+                    ...baseEntry,
+                    stale: now,
+                    expire: durations.expire !== void 0 ? now + durations.expire * 1e3 : void 0
+                  };
+                }
+                return {
+                  ...baseEntry,
+                  expire: now
+                };
+              }));
+            }
+          }
+        }
+        await writeTags(toInsert);
+        const uniquePaths = Array.from(new Set(toInsert.filter((t) => t.tag.startsWith(SOFT_TAG_PREFIX)).map((t) => `/${t.path}`)));
+        if (uniquePaths.length > 0) {
+          await globalThis.cdnInvalidationHandler.invalidatePaths(uniquePaths.map((path) => ({
+            initialPath: path,
+            rawPath: path,
+            resolvedRoutes: [
+              {
+                route: path,
+                // TODO: ideally here we should check if it's an app router page or route
+                type: "app"
+              }
+            ]
+          })));
+        }
+      }
+    } catch (e) {
+      error("Failed to revalidate tag", e);
+    }
+  }
+  // TODO: We should delete/update tags in this method
+  // This will require an update to the tag cache interface
+  async updateTagsOnSet(key, data, ctx) {
+    if (globalThis.openNextConfig.dangerous?.disableTagCache || globalThis.tagCache.mode === "nextMode" || // Here it means it's a delete
+    !data) {
+      return;
+    }
+    const derivedTags = data?.kind === "FETCH" ? (
+      //@ts-expect-error - On older versions of next, ctx was a number, but for these cases we use data?.data?.tags
+      ctx?.tags ?? data?.data?.tags ?? []
+    ) : data?.kind === "PAGE" ? data.headers?.["x-next-cache-tags"]?.split(",") ?? [] : [];
+    debug("derivedTags", derivedTags);
+    const storedTags = await globalThis.tagCache.getByPath(key);
+    const tagsToWrite = derivedTags.filter((tag) => !storedTags.includes(tag));
+    if (tagsToWrite.length > 0) {
+      await writeTags(tagsToWrite.map((tag) => ({
+        path: key,
+        tag,
+        // In case the tags are not there we just need to create them
+        // but we don't want them to return from `getLastModified` as they are not stale
+        revalidatedAt: 1
+      })));
+    }
+  }
+  extractRevalidateForSet(ctx) {
+    if (ctx === void 0) {
+      return void 0;
+    }
+    if (typeof ctx === "number" || ctx === false) {
+      return ctx;
+    }
+    if ("revalidate" in ctx) {
+      return ctx.revalidate;
+    }
+    if ("cacheControl" in ctx) {
+      return ctx.cacheControl?.revalidate;
+    }
+    return void 0;
+  }
+};
+// Annotate the CommonJS export names for ESM import in node:
+0 && (module.exports = {
+  SOFT_TAG_PREFIX
+});
