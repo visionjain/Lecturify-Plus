@@ -40,7 +40,6 @@
     "jszip": "^3.10.1",
     "lucide-react": "^0.356.0",
     "mongoose": "^8.2.2",
-    "next": "15.3.8",
     "next-themes": "^0.3.0",
     "node-pptx-parser": "^1.0.1",
     "nodemailer": "^6.9.12",
@@ -63,6 +62,7 @@
     "turndown": "^7.2.0"
   },
   "devDependencies": {
+    "@opennextjs/cloudflare": "^1.19.4",
     "@types/bcryptjs": "^2.4.6",
     "@types/file-saver": "^2.0.7",
     "@types/jsonwebtoken": "^9.0.6",
@@ -73,9 +73,11 @@
     "@types/turndown": "^5.0.5",
     "autoprefixer": "^10.0.1",
     "eslint": "8.57.1",
-    "eslint-config-next": "15.3.5",
+    "eslint-config-next": "^16.2.4",
+    "next": "^16.2.4",
     "postcss": "^8",
     "tailwindcss": "^3.3.0",
-    "typescript": "^5"
+    "typescript": "^5",
+    "wrangler": "^4.85.0"
   }
 }

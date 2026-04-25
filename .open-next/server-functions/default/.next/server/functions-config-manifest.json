@@ -1,0 +1,9 @@
+{
+  "version": 1,
+  "functions": {
+    "/api/users/generateResponse": {
+      "maxDuration": 60
+    },
+    "/api/users/parsePDF": {}
+  }
+}
