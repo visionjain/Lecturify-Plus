@@ -24,7 +24,7 @@ cd Lecturify-Plus
 ```
 
 ### 2️⃣ Set Up Environment Variables
-Create a .env file in the root directory and add the following:
+Create a .env file in the root directory and add the following
 ```sh
 TOKEN_SECRET=
 MONGO_URI=
